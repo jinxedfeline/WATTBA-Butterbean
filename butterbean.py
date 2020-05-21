@@ -5,7 +5,7 @@
 #Thank you to Agnes(Smyrna) for providing guidance throughout the whole process
 
 #Importing dependencies
-import discord, os , random, psycopg2, asyncio
+import discord, os , random, psycopg2, asyncio, datetime
 from discord.ext import commands, tasks
 from discord.utils import get
 
@@ -17,6 +17,7 @@ from config import config
 
 #-----------Buttons!-----------#
 bovontoSchedule = False
+nookSchedule = False
 
 #-----------Intializing functions-----------#
 client = commands.Bot(command_prefix='!', description='Butterborg is online.', add=True)
@@ -51,6 +52,10 @@ async def checkApprovedUsers(user):
     check = cur.fetchone()
     if not check is None:
         return True
+
+async def currentTime():
+    return datetime.datetime.utcnow()
+    await asyncio.sleep(60)
 
 # ---------------- Meme Management ----------------
 #Message Send with !bb arg
@@ -148,8 +153,6 @@ async def bobross (ctx):
 # Posts quotes of Bob Ross
     await ctx.send(embed=pickRandomLine(name='Bob Ross',icon=embedRossIcon, lines= rossQuotes))
 
-
-
 #Just sends a damn Bovonto pitch
 @client.command()
 async def bovonto (ctx):
@@ -215,6 +218,9 @@ async def listroles(ctx):
     for i in roles:
         rolesStr += " " + str(i) +","
     await ctx.send(rolesStr)
+
+#Regularly checks time
+client.loop.create_task(currentTime())
 
 #Creates a looped task to execute the Bovonto pitches regularly
 while bovontoSchedule == True:
