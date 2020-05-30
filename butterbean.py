@@ -13,8 +13,6 @@ from bobross import rossQuotes, embedRossIcon, pickRandomLine
 from bovonto import embedBovontoIcon, pitches, makePitch, pickRandomLine
 from config import config
 
-
-
 #-----------Buttons!-----------#
 bovontoSchedule = False
 nookSchedule = False
