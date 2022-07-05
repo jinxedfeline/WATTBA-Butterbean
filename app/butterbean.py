@@ -227,8 +227,8 @@ async def leave(ctx, old_role: str):
 #Lists unformatted all roles.  
 @client.hybrid_command(brief='List all roles', description='List all roles on the server, joinable or otherwise')
 async def listroles(ctx):
-    rolesStr = ', '.join(map(lambda r: str(r), ctx.guild.roles))
-    await ctx.send(rolesStr)
+    rolesStr = ', '.join(map(lambda r: f'{r.name}{" <:heathsalute:482273509951799296>" if r.is_assignable() else ""}', ctx.guild.roles))
+    await ctx.send(f'Available roles: {rolesStr}. I can assign those marked with <:heathsalute:482273509951799296>!')
 
 #Creates a looped task to execute the Bovonto pitches regularly
 while bovontoSchedule == True:
