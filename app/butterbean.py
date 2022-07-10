@@ -302,7 +302,7 @@ class PronounPicker(discord.ui.Select):
                     await interaction.user.remove_roles(p, reason=f'Removed by {interaction.user.name} via pronoun picker')
 
         # show confirmation to the user (that only the user can see)
-        await interaction.response.send_message(f'Your pronouns are now: {", ".join(self.values)}', ephemeral=True)
+        await interaction.response.send_message(f'Your pronouns are now {", ".join(self.values) if len(self.values) > 0 else "(none)"}', ephemeral=True)
 
 
 # add the slash command to the bot's command tree
