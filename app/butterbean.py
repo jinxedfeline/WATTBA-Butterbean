@@ -92,6 +92,41 @@ async def createEmbedFromRandomLine(name: str, icon: str, tableName: str, column
     e.set_author(name=name, icon_url=icon)
     return e
 
+# --- Bot Permission Management ---
+
+#
+# These functions expect there to be a permissions table set up as in permission-notes.md;
+# convenience functions for dealing with that table will come later
+#
+
+async def hasPermission(user: discord.Member, permission: str) -> bool:
+
+    user_name = str(user)
+    roles = user.roles
+
+    # convert roles to string and encase them in quotes, then join them together with commas
+    # into a list
+    role_string = ','.join(map(lambda r: '"'+str(r)+'"', roles))
+
+    # surely there has to be a better way to do this with parameter binding or something, but
+    # i am lazy
+    # sum up the 0 or 1 in the relevant permission column, in all the rows that apply either to
+    # the user or one of their roles
+    statement = 'SELECT sum({}) FROM permissions WHERE (user = "{}") OR (role IN ({}));'.format(permission, user_name, role_string)
+
+    with Session(engine) as session:
+        result = session.execute(statement).fetchone()
+
+    # if there's at least one true, i.e. 1, value in all the applicable rows, we'll have a
+    # positive value and thus the user has permission    
+    return (result > 0)
+
+
+# do we need this?
+async def memberFromStr(s: str) -> discord.Member:
+    pass
+
+
 # ---------------- Meme Management ----------------
 #Message Send with !bb arg
 @client.hybrid_command(brief='Send a meme', description='Retrieves a stored meme from my necroborgic memories')
