@@ -99,7 +99,7 @@ async def createEmbedFromRandomLine(name: str, icon: str, tableName: str, column
 # convenience functions for dealing with that table will come later
 #
 
-async def hasPermission(user: discord.Member, permission: str) -> bool:
+def hasPermission(user: discord.Member, permission: str) -> bool:
 
     user_name = str(user)
     roles = user.roles
@@ -124,7 +124,7 @@ async def hasPermission(user: discord.Member, permission: str) -> bool:
 
 # do we need this? supplemental function to get permissions for a user where we only know the
 # user name string a la SomeUser#1234
-async def memberFromStr(s: str) -> discord.Member:
+def memberFromStr(s: str) -> discord.Member:
     # this iterates through all *visible* members in all guilds; depending on permissions and
     # caching, this may not be all users on all servers
     for m in client.get_all_members():
@@ -133,13 +133,28 @@ async def memberFromStr(s: str) -> discord.Member:
 
     return None
 
-async def hasPermission(user_string: str, permission: str) -> bool:
+def hasPermission(user_string: str, permission: str) -> bool:
     m = memberFromStr(user_string)
 
     if m != None:
         return hasPermission(m, permission)
     else:
         return False
+
+# just for debugging purposes, could also use it to test autocomplete for strings later
+@client.hybrid_command(brief='Test a permission', description='Test whether a given user has a given permission')
+async def get_user_permission(ctx, user: discord.Member, permission: str):
+    if hasPermission(user, permission):
+        await ctx.send('{0!s} has permission {1}! :thumbsup:'.format(user, permission))
+    else:
+        await ctx.send('{0!s} does not have permission {1}! :thumbsdown:'.format(user, permission))
+
+@client.hybrid_command(brief='Test a permission', description='Test whether a given user has a given permission')
+async def get_string_permission(ctx, user: str, permission: str):
+    if hasPermission(user, permission):
+        await ctx.send('{0!s} has permission {1}! :thumbsup:'.format(user, permission))
+    else:
+        await ctx.send('{0!s} does not have permission {1}! :thumbsdown:'.format(user, permission))
 
 
 # ---------------- Meme Management ----------------
