@@ -122,9 +122,24 @@ async def hasPermission(user: discord.Member, permission: str) -> bool:
     return (result > 0)
 
 
-# do we need this?
+# do we need this? supplemental function to get permissions for a user where we only know the
+# user name string a la SomeUser#1234
 async def memberFromStr(s: str) -> discord.Member:
-    pass
+    # this iterates through all *visible* members in all guilds; depending on permissions and
+    # caching, this may not be all users on all servers
+    for m in client.get_all_members():
+        if s == str(m):
+            return m
+
+    return None
+
+async def hasPermission(user_string: str, permission: str) -> bool:
+    m = memberFromStr(user_string)
+
+    if m != None:
+        return hasPermission(m, permission)
+    else:
+        return False
 
 
 # ---------------- Meme Management ----------------
