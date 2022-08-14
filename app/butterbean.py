@@ -101,51 +101,72 @@ async def createEmbedFromRandomLine(name: str, icon: str, tableName: str, column
 # convenience functions for dealing with that table will come later
 #
 
-def hasPermission(user: discord.Member, permission: str) -> bool:
+# even though we're only accepting strings, the actual call seems to still be giving us full
+# discord.Member objects if we're coming from the appropriate function. python is weird.
+def hasPermission(user: str, permission: str) -> bool:
 
-    user_name = str(user)
-    roles = user.roles
+    member = None
 
-    # convert roles to string and encase them in quotes, then join them together with commas
-    # into a list
-    role_string = ','.join(map(lambda r: '"'+str(r)+'"', roles))
+    if (str(user) != user):
+        # we were passed something that's not a string, assume it's a member object
+        member = user
+    else:
+        # look up whether we have seen this member before and might know their roles
+        member = memberFromStr(user)
 
-    # surely there has to be a better way to do this with parameter binding or something, but
-    # i am lazy
-    # sum up the 0 or 1 in the relevant permission column, in all the rows that apply either to
-    # the user or one of their roles
-    statement = 'SELECT sum({}) FROM permissions WHERE (user = "{}") OR (role IN ({}));'.format(permission, user_name, role_string)
+    if member != None:
+        # if we have a matching member with associated roles, do the full proper lookup
+        roles = member.roles
 
-    with Session(engine) as session:
-        result = session.execute(statement).fetchone()
+        # convert roles to string and encase them in quotes, then join them together with commas
+        # into a list
+        role_string = ','.join(map(lambda r: '"'+str(r)+'"', roles))
 
-    # if there's at least one true, i.e. 1, value in all the applicable rows, we'll have a
-    # positive value and thus the user has permission    
-    return (result > 0)
+        # surely there has to be a better way to do this with parameter binding or something, but
+        # i am lazy
+        # sum up the 0 or 1 in the relevant permission column, in all the rows that apply either to
+        # the user or one of their roles
+        statement = 'SELECT sum({}) FROM permissions WHERE (user = "{}") OR (role IN ({}));'.format(permission, str(member), role_string)
+
+        with Session(engine) as session:
+            result = session.execute(statement).fetchone()[0]
+
+        # if there's at least one true, i.e. 1, value in all the applicable rows, we'll have a
+        # positive value and thus the user has permission; if the user is unknown, i.e. has no
+        # matching rows, the result will be None, and thus false as well
+        return bool(result)
+    else:
+        # we have only a user name string, so skip the role part
+        statement = 'SELECT sum({}) FROM permissions WHERE (user = "{}");'.format(permission, user)
+
+        with Session(engine) as session:
+            result = session.execute(statement).fetchone()[0]
+        
+        return bool(result)
 
 
 # do we need this? supplemental function to get permissions for a user where we only know the
 # user name string a la SomeUser#1234
 def memberFromStr(s: str) -> discord.Member:
+
     # this iterates through all *visible* members in all guilds; depending on permissions and
     # caching, this may not be all users on all servers
     for m in client.get_all_members():
-        if s == str(m):
+        # if we're accidentally passed a full member object, check for that equality first
+        if s == m:
+            return m
+        # otherwise compare to each member's user name string
+        elif s == str(m):
             return m
 
+    # nobody found? return None
     return None
-
-def hasPermission(user_string: str, permission: str) -> bool:
-    m = memberFromStr(user_string)
-
-    if m != None:
-        return hasPermission(m, permission)
-    else:
-        return False
 
 # just for debugging purposes, could also use it to test autocomplete for strings later
 @client.hybrid_command(brief='Test a permission', description='Test whether a given user has a given permission')
 async def get_user_permission(ctx, user: discord.Member, permission: str):
+    # somehow this is failing to hit the right function? it calls hasPermission without converting member to string
+    # maybe a command caching issue?
     if hasPermission(user, permission):
         await ctx.send('{0!s} has permission {1}! :thumbsup:'.format(user, permission))
     else:
