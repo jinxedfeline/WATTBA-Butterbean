@@ -270,22 +270,52 @@ async def bovonto(ctx):
     await ctx.send(embed=await createEmbedFromRandomLine(name='Bovonto Bot',icon=embedBovontoIcon, tableName='bovontoPitches', columnName='pitch'))
 
 #---------------- Role management functions ----------------
-#Adds a pronoun specific role
+
+# utility function to get a list of roles settable by the users on themselves
+def getOptInRoles() -> list[str]:
+    statement = 'SELECT role FROM permissions WHERE is_user_settable = 1;'
+
+    with Session(engine) as session:
+        rows = session.execute(statement).fetchall()
+
+    # from the results, just select the first column
+    roleList = list( map(lambda x: x[0], rows) )
+
+    return roleList
+
+# utility function to get a list of roles settable by properly permissioned users on others
+def getAssignableRoles() -> list[str]:
+    statement = 'SELECT role FROM permissions WHERE is_assignable = 1;'
+
+    with Session(engine) as session:
+        rows = session.execute(statement).fetchall()
+
+    # from the results, just select the first column
+    roleList = list( map(lambda x: x[0], rows) )
+
+    return roleList
+
+#Adds a pronoun specific role - technically, any self-assignable role
 @client.hybrid_command(brief='Add pronoun role', description='Add a pronoun role to yourself')
 async def callme(ctx, pronoun: str):
     user = ctx.message.author
     genderId = get(ctx.guild.roles, name=pronoun)
-    #This checks the list of roles on the server and the order they're in. Do not fuck with the order on the server or this will fuck up.
-    upperDemarc = get(ctx.guild.roles, name='he/him'); lowerDemarc = get(ctx.guild.roles, name='Catillac Cat')
-    if genderId > upperDemarc or genderId <= lowerDemarc:
-        await ctx.send('<:rudy:441453959215972352> Oooooh, {0} isn\'t as sneaky as they think they are. '.format(user.mention))
-    elif genderId <= upperDemarc and genderId > lowerDemarc:
-        userRoles = ctx.author.roles
+    userRoles = ctx.author.roles
+    availableRoles = getAssignableRoles()
+
+    if genderId == None:
+        # no matching role found
+        await ctx.send('<:rudy:441453959215972352> I haven\'t yet heard of a role called {0}.'.format(pronoun))
+    elif pronoun in availableRoles:
+        # role exists and is assignable, go ahead and do it, if necessary
         if genderId in userRoles:
             await ctx.send('<:rudy:441453959215972352> You already have {0} pronouns.'.format(pronoun))
-        if genderId not in userRoles:
+        else:
             await user.add_roles(genderId)
             await ctx.send('<:heathsalute:482273509951799296> Comrade {0} wants to be called {1}.'.format(user.mention, pronoun))
+    else:
+        # this role isn't listed as assignable in the permissions table, don't do it
+        await ctx.send('<:rudy:441453959215972352> Oooooh, {0} isn\'t as sneaky as they think they are. '.format(user.mention))
 
 #Removes a pronoun specific role          
 @client.hybrid_command(brief='Remove pronoun role', description='Remove a pronoun role from yourself')
@@ -293,10 +323,21 @@ async def imnot(ctx, old_pronoun: str):
     user = ctx.message.author
     roleToRemove = get(ctx.guild.roles, name=old_pronoun)
     userRoles = ctx.author.roles
-    await user.remove_roles(roleToRemove)
-    await ctx.send('<:heathsalute:482273509951799296> Comrade {0} no longer wants to be called {1}.'.format(user.mention, old_pronoun))
-    if roleToRemove not in userRoles:
-        await ctx.send("<:rudy:441453959215972352> You never picked those pronouns.")
+    availableRoles = getAssignableRoles()
+
+    if roleToRemove == None:
+        # no matching role found
+        await ctx.send('<:rudy:441453959215972352> I haven\'t yet heard of a role called {0}.'.format(old_pronoun))
+    elif old_pronoun in availableRoles:
+        if roleToRemove in userRoles:
+            await user.remove_roles(roleToRemove)
+            await ctx.send('<:heathsalute:482273509951799296> Comrade {0} no longer wants to be called {1}.'.format(user.mention, old_pronoun))
+        else:        
+            await ctx.send("<:rudy:441453959215972352> You never picked those pronouns.")
+    else: 
+        # this role isn't listed as assignable in the permissions table, don't do it
+        await ctx.send('<:rudy:441453959215972352> Oooooh, {0} isn\'t as sneaky as they think they are. '.format(user.mention))
+    
 
 #Adds a non-pronoun specific role
 @client.hybrid_command(brief='Add other opt-in role', description='Join one of the other role-based groups')
