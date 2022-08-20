@@ -350,10 +350,46 @@ async def leave(ctx, old_role: str):
     await imnot(ctx, old_role)
 
 #Lists unformatted all roles.  
-@client.hybrid_command(brief='List all roles', description='List all roles on the server, joinable or otherwise')
+@client.hybrid_command(brief='List all roles', description='List all roles on the server and whether you can join them')
 async def listroles(ctx):
-    rolesStr = ', '.join(map(lambda r: str(r), ctx.guild.roles))
-    await ctx.send(rolesStr)
+
+    # get roles and some info about them
+    allRoles = list(map(lambda r: str(r), ctx.guild.roles))
+    optInRoles = getOptInRoles()
+    assignableRoles = getAssignableRoles()
+
+    # these are roles that you can't assign to yourself, but someone who can assign roles can
+    onlyAssignable = []
+    # these are roles that can't be assigned through the bot at all
+    remainingRoles = []   
+    
+    for r in allRoles:
+        if r in assignableRoles:
+            if not (r in optInRoles):
+                onlyAssignable.append(r)
+        elif not (r in optInRoles):
+            # r is neither assignable, nor opt-in
+            remainingRoles.append(r)
+
+    msg = ''
+
+    if len(optInRoles) > 0:
+        msg += "Roles you can give yourself (try the `/pickpronoun` command):\n"
+        msg += ', '.join(optInRoles)
+        msg += "\n\n"
+
+    if len(onlyAssignable) > 0:
+        msg += "Roles someone else can give you:\n"
+        msg += ', '.join(onlyAssignable)
+
+    if len(remainingRoles) > 0:
+        msg += "Roles not available through me:\n"
+        msg += ', '.join(remainingRoles)
+
+    if len(msg) == 0:
+        msg = 'Something went wrong building the role list message!'
+    
+    await ctx.send(msg)
 
 #---------------- Tarot functions ----------------
 # single card draw
