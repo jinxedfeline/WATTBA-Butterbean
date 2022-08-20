@@ -342,25 +342,12 @@ async def imnot(ctx, old_pronoun: str):
 #Adds a non-pronoun specific role
 @client.hybrid_command(brief='Add other opt-in role', description='Join one of the other role-based groups')
 async def join(ctx, new_role: str):
-    user = ctx.message.author
-    roleToAdd = get(ctx.guild.roles, name=new_role.lower())
-    lowerDemarc = get(ctx.guild.roles, name='Catillac Cat')
-    if roleToAdd >= lowerDemarc:
-        await ctx.send("<:rudy:441453959215972352> That's not what this is for.")
-    else:
-        await user.add_roles(roleToAdd)
-        await ctx.send('<:heathsalute:482273509951799296> {0} has joined {1}!'.format(user.mention, new_role))
+    await callme(ctx, new_role)
 
 #Removes a non-pronoun specific role
 @client.hybrid_command(brief='Remove other opt-in role', description='Leave one of the other role-based groups')
 async def leave(ctx, old_role: str):
-    user = ctx.message.author
-    roleToRemove = get(ctx.guild.roles, name=old_role.lower())
-    userRoles = ctx.author.roles
-    await user.remove_roles(roleToRemove)
-    await ctx.send('{0} is no longer a member of {1}.'.format(user.mention, old_role))
-    if roleToRemove not in userRoles:
-        await ctx.send("<:rudy:441453959215972352> You were never in that role.")
+    await imnot(ctx, old_role)
 
 #Lists unformatted all roles.  
 @client.hybrid_command(brief='List all roles', description='List all roles on the server, joinable or otherwise')
